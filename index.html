@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en-AU">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Come Home to Each Other</title>
+<meta name="description" content="A daily bridge between a mother and her daughter. One small question in the morning, one small thank you at night.">
+<meta name="theme-color" content="#4A3728">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&family=Work+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --walnut: #4A3728;
+    --cedar: #8B7355;
+    --amber: #C4A87E;
+    --linen: #F7F3ED;
+    --earth: #2D2418;
+    --drift: #D4C5A9;
+    --white: #FFFDF9;
+    --mum: #8B7355;     /* cedar - mum's colour */
+    --daughter: #C4A87E; /* amber - daughter's colour */
+    --shadow-rest: 0 2px 16px rgba(45,36,24,0.06);
+    --shadow-hover: 0 8px 30px rgba(74,55,40,0.14);
+    --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html { font-size: 16px; }
+  body {
+    font-family: 'Work Sans', sans-serif;
+    font-weight: 300;
+    color: var(--earth);
+    background: #E9E2D6;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+  .font-h { font-family: 'Cormorant Garamond', serif; font-weight: 400; }
+  em { font-style: italic; }
+
+  /* ===== phone shell (demos nicely on desktop, invisible on mobile) ===== */
+  .shell {
+    max-width: 430px;
+    margin: 0 auto;
+    min-height: 100vh;
+    min-height: 100dvh;
+    background: var(--linen);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 0 60px rgba(45,36,24,0.18);
+  }
+  @media (min-width: 500px) {
+    body { padding: 28px 0; }
+    .shell { min-height: calc(100vh - 56px); border-radius: 34px; overflow: hidden; }
+  }
+
+  /* ===== header ===== */
+  header {
+    background: var(--walnut);
+    color: var(--linen);
+    padding: 22px 22px 18px;
+    text-align: center;
+    position: relative;
+  }
+  header .brand {
+    font-family: 'Work Sans', sans-serif; font-weight: 500;
+    font-size: .6rem; letter-spacing: .3em; text-transform: uppercase;
+    color: var(--amber);
+  }
+  header h1 { font-family:'Cormorant Garamond',serif; font-weight:400; font-size: 1.55rem; line-height:1.15; margin-top: 6px; }
+  header h1 em { color: var(--amber); }
+
+  /* role switch */
+  .role-switch {
+    display: flex; justify-content: center; gap: 8px; margin-top: 14px;
+  }
+  .role-btn {
+    font-family: 'Work Sans', sans-serif; font-weight: 500; font-size: .78rem;
+    letter-spacing: .06em; padding: 8px 20px; border-radius: 30px;
+    border: 1px solid rgba(212,197,169,0.4); background: transparent;
+    color: var(--drift); cursor: pointer; transition: all .3s var(--ease);
+  }
+  .role-btn.active { background: var(--amber); color: var(--walnut); border-color: var(--amber); font-weight: 600; }
+
+  /* ===== main ===== */
+  main { flex: 1; padding: 24px 20px 96px; }
+  .screen { display: none; animation: rise .45s var(--ease); }
+  .screen.active { display: block; }
+  @keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+  .date-line {
+    text-align: center; font-family:'Cormorant Garamond',serif; font-style: italic;
+    font-size: 1rem; color: var(--cedar); margin-bottom: 18px;
+  }
+
+  .sprig { display:block; margin: 0 auto; }
+  .sprig path { stroke: var(--cedar); stroke-width: 1.1; fill:none; stroke-linecap: round; }
+
+  /* cards */
+  .card {
+    background: var(--white); border: 0.7px solid rgba(139,115,85,0.16);
+    border-radius: 14px; padding: 22px 20px; margin-bottom: 16px;
+    box-shadow: var(--shadow-rest);
+  }
+  .card-tag {
+    font-family:'Work Sans',sans-serif; font-weight:500; font-size:.62rem;
+    letter-spacing:.26em; text-transform: uppercase; color: var(--amber);
+    display:block; margin-bottom: 8px;
+  }
+  .card h2 { font-family:'Cormorant Garamond',serif; font-weight:400; color: var(--walnut); font-size: 1.45rem; line-height: 1.25; margin-bottom: 12px; }
+  .card h2 em { color: var(--cedar); }
+  .card p.hint { font-size: .85rem; color: #6b5d4a; margin-bottom: 12px; }
+
+  textarea {
+    width: 100%; min-height: 96px; resize: vertical;
+    font-family: 'Cormorant Garamond', serif; font-size: 1.1rem; line-height: 1.55;
+    color: var(--earth); background: var(--linen);
+    border: 0.7px solid rgba(139,115,85,0.25); border-radius: 10px;
+    padding: 14px 15px; transition: border-color .3s var(--ease);
+  }
+  textarea:focus { outline: none; border-color: var(--amber); }
+  textarea::placeholder { color: #a8977d; font-style: italic; }
+
+  .save-btn {
+    margin-top: 12px; width: 100%;
+    background: var(--walnut); color: var(--linen);
+    font-family:'Work Sans',sans-serif; font-weight: 500; font-size: .92rem; letter-spacing:.04em;
+    padding: 14px; border: none; border-radius: 10px; cursor: pointer;
+    transition: all .3s var(--ease);
+  }
+  .save-btn:hover { background: var(--earth); }
+  .save-btn.saved { background: var(--cedar); }
+  .save-btn:disabled { opacity: .55; cursor: default; }
+
+  /* saved entry display */
+  .entry-done {
+    background: rgba(212,197,169,0.18); border-radius: 10px; padding: 15px 16px;
+    font-family:'Cormorant Garamond',serif; font-size: 1.12rem; line-height: 1.5; color: var(--walnut);
+  }
+  .entry-done .edit-link {
+    display:inline-block; margin-top: 8px; font-family:'Work Sans',sans-serif;
+    font-size: .72rem; letter-spacing:.1em; text-transform: uppercase; color: var(--cedar);
+    background:none; border:none; cursor:pointer; text-decoration: underline; text-underline-offset: 3px;
+  }
+
+  .locked {
+    text-align:center; font-family:'Cormorant Garamond',serif; font-style:italic;
+    font-size: 1rem; color: #a8977d; padding: 8px 10px 2px;
+  }
+
+  /* ===== bridge screen ===== */
+  .bridge-pair { margin-bottom: 22px; }
+  .bridge-title {
+    text-align:center; font-family:'Work Sans',sans-serif; font-weight:500;
+    font-size:.64rem; letter-spacing:.26em; text-transform:uppercase; color: var(--cedar);
+    margin-bottom: 12px;
+  }
+  .bubble { border-radius: 14px; padding: 16px 18px; margin-bottom: 10px; max-width: 92%; position: relative; }
+  .bubble .who {
+    font-family:'Work Sans',sans-serif; font-weight:600; font-size:.66rem;
+    letter-spacing:.14em; text-transform:uppercase; margin-bottom: 5px; display:block;
+  }
+  .bubble .words { font-family:'Cormorant Garamond',serif; font-size: 1.14rem; line-height: 1.5; }
+  .bubble.mum { background: rgba(139,115,85,0.13); border: 0.7px solid rgba(139,115,85,0.25); margin-right:auto; }
+  .bubble.mum .who { color: var(--cedar); }
+  .bubble.daughter { background: rgba(196,168,126,0.16); border: 0.7px solid rgba(196,168,126,0.4); margin-left:auto; text-align:right; }
+  .bubble.daughter .who { color: #a8865a; }
+  .bubble.empty { background: transparent; border: 1px dashed rgba(139,115,85,0.3); }
+  .bubble.empty .words { color: #a8977d; font-style: italic; font-size: .95rem; }
+
+  /* ===== journey ===== */
+  .day-block { margin-bottom: 26px; }
+  .day-head {
+    font-family:'Cormorant Garamond',serif; font-size: 1.2rem; color: var(--walnut);
+    border-bottom: 0.7px solid rgba(139,115,85,0.25); padding-bottom: 6px; margin-bottom: 12px;
+  }
+  .day-head span { font-style: italic; color: var(--cedar); font-size: .95rem; }
+  .mini { border-radius: 10px; padding: 10px 14px; margin-bottom: 8px; font-size: .95rem; }
+  .mini .who { font-weight: 500; font-size:.66rem; letter-spacing:.12em; text-transform:uppercase; display:block; }
+  .mini.mum { background: rgba(139,115,85,0.1); }
+  .mini.mum .who { color: var(--cedar); }
+  .mini.daughter { background: rgba(196,168,126,0.13); }
+  .mini.daughter .who { color: #a8865a; }
+  .mini .w { font-family:'Cormorant Garamond',serif; font-size: 1.05rem; color: var(--earth); }
+  .journey-empty { text-align:center; padding: 30px 10px; }
+  .journey-empty p { font-family:'Cormorant Garamond',serif; font-style:italic; font-size:1.1rem; color:#a8977d; margin-bottom: 18px; }
+  .ghost-btn {
+    background: none; border: 1px solid var(--cedar); color: var(--cedar);
+    font-family:'Work Sans',sans-serif; font-weight:500; font-size:.8rem; letter-spacing:.05em;
+    padding: 11px 24px; border-radius: 30px; cursor:pointer; transition: all .3s var(--ease);
+  }
+  .ghost-btn:hover { background: var(--cedar); color: var(--linen); }
+
+  /* ===== setup ===== */
+  .setup-hero { text-align: center; padding: 10px 4px 6px; }
+  .setup-hero h2 { font-family:'Cormorant Garamond',serif; font-weight:400; font-size: 1.9rem; color: var(--walnut); line-height:1.15; margin: 14px 0 10px; }
+  .setup-hero h2 em { color: var(--cedar); }
+  .setup-hero p { font-size: .95rem; color:#5d5140; max-width: 19rem; margin: 0 auto 22px; }
+  .setup-field { margin-bottom: 14px; text-align: left; }
+  .setup-field label {
+    display:block; font-family:'Work Sans',sans-serif; font-weight:500; font-size:.68rem;
+    letter-spacing:.2em; text-transform:uppercase; color: var(--cedar); margin-bottom: 6px;
+  }
+  .setup-field input {
+    width:100%; padding: 14px 16px; border-radius: 10px;
+    border: 0.7px solid rgba(139,115,85,0.28); background: var(--white);
+    font-family:'Cormorant Garamond',serif; font-size: 1.15rem; color: var(--earth);
+  }
+  .setup-field input:focus { outline:none; border-color: var(--amber); }
+
+  /* ===== bottom nav ===== */
+  nav {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    background: var(--white); border-top: 0.7px solid rgba(139,115,85,0.18);
+    display: flex; padding: 10px 8px calc(10px + env(safe-area-inset-bottom));
+  }
+  nav button {
+    flex: 1; background: none; border: none; cursor: pointer;
+    font-family: 'Work Sans', sans-serif; font-weight: 500; font-size: .62rem;
+    letter-spacing: .12em; text-transform: uppercase; color: #a8977d;
+    padding: 6px 2px; transition: color .3s var(--ease);
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+  }
+  nav button svg { width: 21px; height: 21px; stroke: currentColor; fill: none; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
+  nav button.active { color: var(--walnut); }
+
+  .toast {
+    position: absolute; left: 50%; bottom: 90px; transform: translateX(-50%) translateY(20px);
+    background: var(--walnut); color: var(--linen); font-size: .85rem;
+    padding: 11px 22px; border-radius: 30px; opacity: 0; pointer-events: none;
+    transition: all .4s var(--ease); white-space: nowrap; box-shadow: var(--shadow-hover);
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <header>
+    <span class="brand">Come Home to Each Other</span>
+    <h1 id="headline">A daily bridge, <em>between you</em></h1>
+    <div class="role-switch" id="roleSwitch" style="display:none;">
+      <button class="role-btn" id="roleMum" onclick="setRole('mum')">Mum</button>
+      <button class="role-btn" id="roleDaughter" onclick="setRole('daughter')">Daughter</button>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- ============ SETUP ============ -->
+    <div class="screen" id="screen-setup">
+      <div class="setup-hero">
+        <svg class="sprig" width="90" height="44" viewBox="0 0 120 58">
+          <path d="M10,29 C40,29 80,29 110,29"/>
+          <path d="M34,29 C34,18 42,12 52,13 C46,20 40,26 34,29"/>
+          <path d="M34,29 C34,40 42,46 52,45 C46,38 40,32 34,29"/>
+          <path d="M58,29 C58,17 67,10 78,11 C71,19 64,25 58,29"/>
+          <path d="M58,29 C58,41 67,48 78,47 C71,39 64,33 58,29"/>
+          <path d="M82,29 C82,19 90,13 99,14 C93,21 87,26 82,29"/>
+          <path d="M82,29 C82,39 90,45 99,44 C93,37 87,32 82,29"/>
+        </svg>
+        <h2>Two of you.<br>One small ritual, <em>every day.</em></h2>
+        <p>A question in the morning. A thank you at night. Written apart, shared together - so you truly see each other, every single day.</p>
+        <div class="setup-field">
+          <label for="inMum">Mum's name</label>
+          <input type="text" id="inMum" placeholder="e.g. Jacqui">
+        </div>
+        <div class="setup-field">
+          <label for="inDaughter">Daughter's name</label>
+          <input type="text" id="inDaughter" placeholder="e.g. Ella">
+        </div>
+        <button class="save-btn" onclick="saveSetup()">Begin your bridge</button>
+      </div>
+    </div>
+
+    <!-- ============ TODAY ============ -->
+    <div class="screen" id="screen-today">
+      <div class="date-line" id="todayDate"></div>
+      <div id="todayCards"></div>
+    </div>
+
+    <!-- ============ BRIDGE ============ -->
+    <div class="screen" id="screen-bridge">
+      <div class="date-line" id="bridgeDate"></div>
+      <div id="bridgeBody"></div>
+    </div>
+
+    <!-- ============ JOURNEY ============ -->
+    <div class="screen" id="screen-journey">
+      <div class="date-line">Your bridge so far</div>
+      <div id="journeyBody"></div>
+    </div>
+
+  </main>
+
+  <nav id="mainNav" style="display:none;">
+    <button id="nav-today" onclick="go('today')">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1"/></svg>
+      Today
+    </button>
+    <button id="nav-bridge" onclick="go('bridge')">
+      <svg viewBox="0 0 24 24"><path d="M3 17c3-6 6-9 9-9s6 3 9 9"/><path d="M3 17h18"/><path d="M7.5 17v-4.2M12 17V8.5M16.5 17v-4.2"/></svg>
+      The Bridge
+    </button>
+    <button id="nav-journey" onclick="go('journey')">
+      <svg viewBox="0 0 24 24"><path d="M4 19.5V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v13.5"/><path d="M4 19.5a2 2 0 0 0 2 2h14"/><path d="M9 8h6M9 12h6"/></svg>
+      Journey
+    </button>
+  </nav>
+
+  <div class="toast" id="toast"></div>
+</div>
+
+<script>
+  /* ================= state ================= */
+  const KEY = 'chte-data-v1';
+  let data = load();
+  let role = localStorage.getItem('chte-role') || null;
+
+  function load() {
+    try { return JSON.parse(localStorage.getItem(KEY)) || blank(); }
+    catch { return blank(); }
+  }
+  function blank() { return { mumName: '', daughterName: '', entries: {} }; }
+  function save() { localStorage.setItem(KEY, JSON.stringify(data)); }
+
+  function todayKey() {
+    const d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  }
+  function niceDate(key) {
+    const [y,m,d] = key.split('-').map(Number);
+    return new Date(y, m-1, d).toLocaleDateString('en-AU', { weekday:'long', day:'numeric', month:'long' });
+  }
+  function entryFor(key) {
+    if (!data.entries[key]) data.entries[key] = { morning:{mum:'',daughter:''}, evening:{mum:'',daughter:''} };
+    return data.entries[key];
+  }
+  function name(r) { return r === 'mum' ? (data.mumName || 'Mum') : (data.daughterName || 'Daughter'); }
+  function otherRole(r) { return r === 'mum' ? 'daughter' : 'mum'; }
+
+  /* prompts */
+  const PROMPTS = {
+    morning: {
+      mum:      { tag: 'This morning', q: 'What would you <em>love</em> for ' + '__D__' + ' today?', ph: 'I would love for you to...' },
+      daughter: { tag: 'This morning', q: 'What do you want <em>Mum to know</em> today?', ph: 'Mum, today I want you to know...' }
+    },
+    evening: {
+      mum:      { tag: 'Tonight', q: 'What did you <em>appreciate</em> about ' + '__D__' + ' today?', ph: 'Today I appreciated...' },
+      daughter: { tag: 'Tonight', q: 'What did you <em>appreciate</em> about Mum today?', ph: 'Mum, today I appreciated...' }
+    }
+  };
+  function promptText(part, r) {
+    return PROMPTS[part][r].q.replace('__D__', '<span style="white-space:nowrap;">' + esc(name('daughter')) + '</span>');
+  }
+  function esc(s) { return (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+  /* ================= render ================= */
+  function go(screen) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById('screen-' + screen).classList.add('active');
+    document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+    const nb = document.getElementById('nav-' + screen);
+    if (nb) nb.classList.add('active');
+    if (screen === 'today') renderToday();
+    if (screen === 'bridge') renderBridge();
+    if (screen === 'journey') renderJourney();
+  }
+
+  function setRole(r) {
+    role = r;
+    localStorage.setItem('chte-role', r);
+    document.getElementById('roleMum').classList.toggle('active', r === 'mum');
+    document.getElementById('roleDaughter').classList.toggle('active', r === 'daughter');
+    document.getElementById('roleMum').textContent = data.mumName || 'Mum';
+    document.getElementById('roleDaughter').textContent = data.daughterName || 'Daughter';
+    renderToday();
+  }
+
+  function saveSetup() {
+    const m = document.getElementById('inMum').value.trim();
+    const d = document.getElementById('inDaughter').value.trim();
+    if (!m || !d) { toast('Pop both names in first'); return; }
+    data.mumName = m; data.daughterName = d;
+    save();
+    boot();
+    toast('Welcome, ' + m + ' & ' + d);
+  }
+
+  function renderToday() {
+    if (!role) return;
+    document.getElementById('todayDate').textContent = niceDate(todayKey());
+    const e = entryFor(todayKey());
+    const hour = new Date().getHours();
+    const parts = hour < 15 ? ['morning','evening'] : ['evening','morning'];
+    let html = '';
+    for (const part of parts) {
+      const p = PROMPTS[part][role];
+      const val = e[part][role];
+      html += '<div class="card">';
+      html += '<span class="card-tag">' + p.tag + ' &middot; for ' + esc(name(role)) + '</span>';
+      html += '<h2>' + promptText(part, role) + '</h2>';
+      if (val && !window['editing_' + part]) {
+        html += '<div class="entry-done">&ldquo;' + esc(val) + '&rdquo;<br><button class="edit-link" onclick="window.editing_' + part + '=true;renderToday()">Change it</button></div>';
+      } else {
+        html += '<textarea id="ta-' + part + '" placeholder="' + p.ph + '">' + esc(val) + '</textarea>';
+        html += '<button class="save-btn" onclick="saveEntry(\'' + part + '\')">Place it on the bridge</button>';
+      }
+      html += '</div>';
+    }
+    html += '<p class="locked">Written in your own time, seen on The Bridge.</p>';
+    document.getElementById('todayCards').innerHTML = html;
+  }
+
+  function saveEntry(part) {
+    const ta = document.getElementById('ta-' + part);
+    const v = ta.value.trim();
+    if (!v) { toast('Write a little something first'); return; }
+    entryFor(todayKey())[part][role] = v;
+    window['editing_' + part] = false;
+    save();
+    renderToday();
+    toast('Placed on the bridge');
+  }
+
+  function bubble(r, words, part) {
+    const whoLabel = esc(name(r));
+    if (words) {
+      return '<div class="bubble ' + r + '"><span class="who">' + whoLabel + '</span><div class="words">&ldquo;' + esc(words) + '&rdquo;</div></div>';
+    }
+    return '<div class="bubble ' + r + ' empty"><span class="who">' + whoLabel + '</span><div class="words">' + whoLabel + ' hasn’t placed ' + (part === 'morning' ? 'this morning’s words' : 'tonight’s words') + ' yet</div></div>';
+  }
+
+  function renderBridge() {
+    document.getElementById('bridgeDate').textContent = niceDate(todayKey());
+    const e = entryFor(todayKey());
+    let html = '';
+    html += '<div class="bridge-pair"><div class="bridge-title">This morning</div>';
+    html += bubble('mum', e.morning.mum, 'morning');
+    html += bubble('daughter', e.morning.daughter, 'morning');
+    html += '</div>';
+    html += '<div class="bridge-pair"><div class="bridge-title">Tonight</div>';
+    html += bubble('mum', e.evening.mum, 'evening');
+    html += bubble('daughter', e.evening.daughter, 'evening');
+    html += '</div>';
+    const total = [e.morning.mum, e.morning.daughter, e.evening.mum, e.evening.daughter].filter(Boolean).length;
+    if (total === 4) {
+      html += '<p class="locked">The bridge is complete today. Well done, both of you.</p>';
+    }
+    document.getElementById('bridgeBody').innerHTML = html;
+  }
+
+  function renderJourney() {
+    const keys = Object.keys(data.entries).sort().reverse().filter(k => {
+      const e = data.entries[k];
+      return e.morning.mum || e.morning.daughter || e.evening.mum || e.evening.daughter;
+    });
+    let html = '';
+    if (!keys.length) {
+      html = '<div class="journey-empty"><p>Your journey starts with today’s first words.</p>' +
+             '<button class="ghost-btn" onclick="seedExample()">Show me an example day</button></div>';
+    } else {
+      for (const k of keys) {
+        const e = data.entries[k];
+        html += '<div class="day-block"><div class="day-head">' + niceDate(k) + '</div>';
+        if (e.morning.mum) html += mini('mum', 'morning', e.morning.mum);
+        if (e.morning.daughter) html += mini('daughter', 'morning', e.morning.daughter);
+        if (e.evening.mum) html += mini('mum', 'tonight', e.evening.mum);
+        if (e.evening.daughter) html += mini('daughter', 'tonight', e.evening.daughter);
+        html += '</div>';
+      }
+    }
+    document.getElementById('journeyBody').innerHTML = html;
+  }
+  function mini(r, when, words) {
+    return '<div class="mini ' + r + '"><span class="who">' + esc(name(r)) + ' &middot; ' + when + '</span><span class="w">&ldquo;' + esc(words) + '&rdquo;</span></div>';
+  }
+
+  function seedExample() {
+    const d = new Date(); d.setDate(d.getDate() - 1);
+    const k = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+    data.entries[k] = {
+      morning: {
+        mum: 'I would love for you to walk into that maths test knowing you have already done the hard part.',
+        daughter: 'I want you to know I am nervous about today but I am trying.'
+      },
+      evening: {
+        mum: 'The way you kept going this afternoon even when you were tired. I saw it.',
+        daughter: 'That you made my favourite dinner without me asking. It made today better.'
+      }
+    };
+    save();
+    renderJourney();
+    toast('Example day added');
+  }
+
+  function toast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2200);
+  }
+
+  /* ================= boot ================= */
+  function boot() {
+    if (!data.mumName || !data.daughterName) {
+      go('setup');
+      return;
+    }
+    document.getElementById('roleSwitch').style.display = 'flex';
+    document.getElementById('mainNav').style.display = 'flex';
+    document.getElementById('headline').innerHTML = esc(data.mumName) + ' <em>&amp;</em> ' + esc(data.daughterName);
+    if (!role) role = 'mum';
+    setRole(role);
+    go('today');
+  }
+  boot();
+</script>
+</body>
+</html>
