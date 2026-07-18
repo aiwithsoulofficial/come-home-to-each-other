@@ -470,7 +470,46 @@
         html += '</div>';
       }
     }
+    html += '<div style="text-align:center; margin-top:30px; padding-top:18px; border-top:0.7px solid rgba(139,115,85,0.18); display:flex; flex-direction:column; gap:10px; align-items:center;">' +
+            '<button class="ghost-btn" onclick="changeNames()">Change our names</button>' +
+            '<button class="ghost-btn" id="resetBtn" onclick="startOver()" style="border-color:rgba(139,115,85,0.4); color:#a8977d;">Start over from scratch</button>' +
+            '</div>';
     document.getElementById('journeyBody').innerHTML = html;
+  }
+
+  function changeNames() {
+    document.getElementById('inMum').value = data.mumName;
+    document.getElementById('inDaughter').value = data.daughterName;
+    go('setup');
+    toast('Fix the names, then tap Begin');
+  }
+
+  let resetArmed = false;
+  function startOver() {
+    const btn = document.getElementById('resetBtn');
+    if (!resetArmed) {
+      resetArmed = true;
+      btn.textContent = 'Tap again - this clears your names and all your words';
+      btn.style.borderColor = '#a8674e';
+      btn.style.color = '#a8674e';
+      setTimeout(() => {
+        resetArmed = false;
+        if (document.getElementById('resetBtn')) renderJourney();
+      }, 5000);
+      return;
+    }
+    localStorage.removeItem(KEY);
+    localStorage.removeItem('chte-role');
+    data = blank();
+    role = null;
+    resetArmed = false;
+    document.getElementById('roleSwitch').style.display = 'none';
+    document.getElementById('mainNav').style.display = 'none';
+    document.getElementById('headline').innerHTML = 'A daily bridge, <em>between you</em>';
+    document.getElementById('inMum').value = '';
+    document.getElementById('inDaughter').value = '';
+    go('setup');
+    toast('Fresh start');
   }
   function mini(r, when, words) {
     return '<div class="mini ' + r + '"><span class="who">' + esc(name(r)) + ' &middot; ' + when + '</span><span class="w">&ldquo;' + esc(words) + '&rdquo;</span></div>';
