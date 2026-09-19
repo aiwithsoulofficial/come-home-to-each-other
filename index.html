@@ -6,6 +6,10 @@
 <title>Come Home to Each Other</title>
 <meta name="description" content="A daily bridge between a mother and her daughter. One small question in the morning, one small thank you at night.">
 <meta name="theme-color" content="#4A3728">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Each Other">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&family=Work+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -150,7 +154,7 @@
     background: rgba(212,197,169,0.18); border-radius: 10px; padding: 15px 16px;
     font-family:'Cormorant Garamond',serif; font-size: 1.12rem; line-height: 1.5; color: var(--walnut);
   }
-  .entry-done .edit-link {
+  .entry-done .edit-link, .card.nudge .edit-link {
     display:inline-block; margin-top: 8px; font-family:'Work Sans',sans-serif;
     font-size: .72rem; letter-spacing:.1em; text-transform: uppercase; color: var(--cedar);
     background:none; border:none; cursor:pointer; text-decoration: underline; text-underline-offset: 3px;
@@ -237,6 +241,19 @@
   nav button svg { width: 21px; height: 21px; stroke: currentColor; fill: none; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
   nav button.active { color: var(--walnut); }
 
+  nav button { position: relative; }
+  nav button.has-new::after {
+    content: ''; position: absolute; top: 2px; left: calc(50% + 8px);
+    width: 8px; height: 8px; border-radius: 50%; background: #E7C878;
+    box-shadow: 0 0 0 2px var(--white);
+  }
+  .card.nudge { border: 0.7px solid rgba(196,168,126,0.55); }
+  .card.nudge .edit-link { display: inline-block; margin-top: 12px; }
+  .join-row { margin-top: 18px; text-align: center; }
+  .join-row .edit-link { background: none; border: none; font-family: inherit; font-size: .82rem; color: var(--cedar); text-decoration: underline; cursor: pointer; }
+  .join-row .setup-field { margin-top: 12px; display: none; }
+  .join-row.open .setup-field { display: block; }
+
   .toast {
     position: absolute; left: 50%; bottom: 90px; transform: translateX(-50%) translateY(20px);
     background: var(--walnut); color: var(--linen); font-size: .85rem;
@@ -285,6 +302,13 @@
           <input type="text" id="inDaughter" placeholder="e.g. Ella">
         </div>
         <button class="save-btn" onclick="saveSetup()">Begin your bridge</button>
+        <div class="join-row" id="joinRow">
+          <button class="edit-link" onclick="document.getElementById('joinRow').classList.add('open')">Been invited? Paste your invite link</button>
+          <div class="setup-field">
+            <input type="text" id="inJoin" placeholder="Paste the link you were sent" autocapitalize="off" autocorrect="off">
+            <button class="ghost-btn" style="margin-top:10px;" onclick="joinFromPaste()">Join the bridge</button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -339,6 +363,18 @@
   function blank() { return { mumName: '', daughterName: '', entries: {} }; }
   function save() { localStorage.setItem(KEY, JSON.stringify(data)); }
 
+  /* ================= sync settings =================
+     The only lines that change when the app moves to another Supabase project. */
+  const SYNC = {
+    url: 'https://jiquevvzrdavgqonvvug.supabase.co',
+    key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImppcXVldnZ6cmRhdmdxb252dnVnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE5NzIxNzIsImV4cCI6MjA4NzU0ODE3Mn0.e4mYjXj8TGTC0_UCm3QCKGSv8Cl-migIl7reYIKNcW4',
+    vapid: 'BB7gzOzDH8ATXyWArkU25psBec1ram5tjb9U7tgseKYCESMk53dWH0V03XP1FBxr1x4OPn5OvtxnAI3rvAuWYS4'
+  };
+  let token = localStorage.getItem('chte-token') || null;   // the pair's secret - whoever holds it is on the bridge
+  let pending = [];
+  try { pending = JSON.parse(localStorage.getItem('chte-pending')) || []; } catch { pending = []; }
+  let current = 'setup';
+
   function todayKey() {
     const d = new Date();
     return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
@@ -372,6 +408,8 @@
 
   /* ================= render ================= */
   function go(screen) {
+    current = screen;
+    if (screen === 'bridge') { localStorage.removeItem('chte-unseen'); document.getElementById('nav-bridge').classList.remove('has-new'); }
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     document.getElementById('screen-' + screen).classList.add('active');
     document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
@@ -390,6 +428,7 @@
     document.getElementById('roleMum').textContent = data.mumName || 'Mum';
     document.getElementById('roleDaughter').textContent = data.daughterName || 'Daughter';
     renderToday();
+    if (token) { keepUrl(); syncSub(); }
   }
 
   function saveSetup() {
@@ -398,6 +437,7 @@
     if (!m || !d) { toast('Pop both names in first'); return; }
     data.mumName = m; data.daughterName = d;
     save();
+    if (token) rpc('chte_set_names', { p_token: token, p_mum: m, p_daughter: d }).catch(() => {});
     boot();
     toast('Welcome, ' + m + ' & ' + d);
   }
@@ -408,7 +448,7 @@
     const e = entryFor(todayKey());
     const hour = new Date().getHours();
     const parts = hour < 15 ? ['morning','evening'] : ['evening','morning'];
-    let html = '';
+    let html = nudgeCards();
     for (const part of parts) {
       const p = PROMPTS[part][role];
       const val = e[part][role];
@@ -435,6 +475,7 @@
     e[part][role] = v;
     window['editing_' + part] = false;
     save();
+    queueSend(todayKey(), part, role, v);
     renderToday();
     const pairDone = e[part].mum && e[part].daughter;
     if (pairDone) {
@@ -573,6 +614,8 @@
       }
     }
     html += '<div style="text-align:center; margin-top:30px; padding-top:18px; border-top:0.7px solid rgba(139,115,85,0.18); display:flex; flex-direction:column; gap:10px; align-items:center;">' +
+            (token ? '<button class="ghost-btn" onclick="sendInvite()">Send the invite link again</button>' : '') +
+            (token ? '<button class="ghost-btn" onclick="setRole(otherRole(role)); renderJourney(); toast(\'This phone is now \' + name(role) + \'’s\')">This is ' + esc(name(role)) + '’s phone - switch to ' + esc(name(otherRole(role))) + '</button>' : '') +
             '<button class="ghost-btn" onclick="changeNames()">Change our names</button>' +
             '<button class="ghost-btn" id="resetBtn" onclick="startOver()" style="border-color:rgba(139,115,85,0.4); color:#a8977d;">Start over from scratch</button>' +
             '</div>';
@@ -591,7 +634,7 @@
     const btn = document.getElementById('resetBtn');
     if (!resetArmed) {
       resetArmed = true;
-      btn.textContent = 'Tap again - this clears your names and all your words';
+      btn.textContent = token ? 'Tap again - this clears every word on both phones' : 'Tap again - this clears your names and all your words';
       btn.style.borderColor = '#a8674e';
       btn.style.color = '#a8674e';
       setTimeout(() => {
@@ -600,8 +643,20 @@
       }, 5000);
       return;
     }
-    localStorage.removeItem(KEY);
-    localStorage.removeItem('chte-role');
+    if (token) {
+      rpc('chte_delete_pair', { p_token: token })
+        .then(() => { resetArmed = false; clearThisPhone(); toast('Fresh start'); })
+        .catch(() => { resetArmed = false; renderJourney(); toast('You’re offline - try again in a moment'); });
+      return;
+    }
+    clearThisPhone();
+    toast('Fresh start');
+  }
+  function clearThisPhone() {
+    ['chte-token','chte-pending','chte-unseen','chte-invite-hidden','chte-push-hidden', KEY, 'chte-role'].forEach(k => localStorage.removeItem(k));
+    token = null; pending = [];
+    unsubscribePush();
+    history.replaceState(null, '', location.pathname);
     data = blank();
     role = null;
     resetArmed = false;
@@ -611,7 +666,6 @@
     document.getElementById('inMum').value = '';
     document.getElementById('inDaughter').value = '';
     go('setup');
-    toast('Fresh start');
   }
   function mini(r, when, words) {
     return '<div class="mini ' + r + '"><span class="who">' + esc(name(r)) + ' &middot; ' + when + '</span><span class="w">&ldquo;' + esc(words) + '&rdquo;</span></div>';
@@ -642,20 +696,262 @@
     setTimeout(() => t.classList.remove('show'), 2200);
   }
 
+  /* ================= two-phone sync ================= */
+  async function rpc(fn, args) {
+    const r = await fetch(SYNC.url + '/rest/v1/rpc/' + fn, {
+      method: 'POST',
+      headers: { apikey: SYNC.key, Authorization: 'Bearer ' + SYNC.key, 'Content-Type': 'application/json' },
+      body: JSON.stringify(args)
+    });
+    if (!r.ok) throw new Error(fn + ' ' + r.status);
+    return r.json();
+  }
+
+  /* the address bar always carries the pair + whose phone this is, so Add to Home Screen keeps the connection */
+  function keepUrl() {
+    if (token && role) history.replaceState(null, '', location.pathname + '?k=' + token + '&as=' + role);
+  }
+  function linkFor(r) { return location.origin + location.pathname + '?k=' + token + '&as=' + r; }
+
+  function readJoinLink(href) {
+    let q;
+    try { q = new URL(href || location.href).searchParams; } catch { return false; }
+    const k = q.get('k'), as = q.get('as');
+    if (!k || !/^[a-f0-9]{32}$/.test(k)) return false;
+    if (k !== token) {                       // joining a bridge this phone has not seen before
+      token = k;
+      localStorage.setItem('chte-token', k);
+      data = blank(); save();
+      pending = []; localStorage.removeItem('chte-pending');
+      role = null;
+    }
+    if (!role && (as === 'mum' || as === 'daughter')) { role = as; localStorage.setItem('chte-role', as); }
+    return true;
+  }
+  function joinFromPaste() {
+    const v = document.getElementById('inJoin').value.trim();
+    if (!readJoinLink(v)) { toast('That doesn’t look like an invite link'); return; }
+    boot();
+  }
+
+  async function ensurePair() {
+    if (token || !data.mumName || !data.daughterName) return;
+    try {
+      token = await rpc('chte_create_pair', { p_mum: data.mumName, p_daughter: data.daughterName });
+      localStorage.setItem('chte-token', token);
+      for (const day of Object.keys(data.entries)) for (const part of ['morning','evening']) for (const r of ['mum','daughter']) {
+        const w = data.entries[day][part][r];
+        if (w) pending.push({ day, part, role: r, words: w, quiet: true });
+      }
+      localStorage.setItem('chte-pending', JSON.stringify(pending));
+      keepUrl();
+      renderToday();
+      flush();
+    } catch (err) { /* offline - still works on this phone, tries again next time it opens */ }
+  }
+
+  function queueSend(day, part, r, words) {
+    if (!token) return;
+    pending = pending.filter(p => !(p.day === day && p.part === part && p.role === r));
+    pending.push({ day, part, role: r, words });
+    localStorage.setItem('chte-pending', JSON.stringify(pending));
+    flush(true);
+  }
+  let flushing = false;
+  async function flush(tellMe) {
+    if (flushing || !token || !pending.length) return;
+    flushing = true;
+    try {
+      while (pending.length) {
+        const p = pending[0];
+        const ok = await rpc('chte_save_entry', { p_token: token, p_day: p.day, p_part: p.part, p_role: p.role, p_words: p.words });
+        pending.shift();
+        localStorage.setItem('chte-pending', JSON.stringify(pending));
+        if (ok && !p.quiet) notifyOther(p);
+      }
+    } catch (err) {
+      if (tellMe) setTimeout(() => toast('Saved on this phone - it will send when you’re back online'), 2400);
+    }
+    flushing = false;
+  }
+  function notifyOther(p) {
+    fetch(SYNC.url + '/functions/v1/chte-notify', {
+      method: 'POST', keepalive: true,
+      headers: { apikey: SYNC.key, Authorization: 'Bearer ' + SYNC.key, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, role: p.role, part: p.part, url: './?k=' + token + '&as=' + otherRole(p.role) })
+    }).catch(() => {});
+  }
+
+  let pulling = false;
+  async function pull(quiet) {
+    if (pulling || !token) return;
+    pulling = true;
+    try {
+      const res = await rpc('chte_get', { p_token: token });
+      if (res === null) {                    // the other phone chose "start over", or the link is wrong
+        clearThisPhone();
+        toast('This bridge was cleared. Begin again whenever you’re ready.');
+        pulling = false; return;
+      }
+      const firstLoad = !data.mumName;
+      const namesChanged = res.mumName !== data.mumName || res.daughterName !== data.daughterName;
+      data.mumName = res.mumName; data.daughterName = res.daughterName;
+      let fresh = null;
+      for (const e of res.entries) {
+        if (pending.some(p => p.day === e.day && p.part === e.part && p.role === e.role)) continue; // my newer words are still on their way
+        const slot = entryFor(e.day)[e.part];
+        if (slot[e.role] !== e.words) {
+          slot[e.role] = e.words;
+          if (e.role !== role) fresh = e;
+        }
+      }
+      save();
+      if (firstLoad) { pulling = false; boot(true); return; }
+      if (namesChanged) showNames();
+      if (fresh) {
+        localStorage.setItem('chte-invite-hidden', '1');     // they are clearly on the bridge now
+        if (current === 'bridge') renderBridge();
+        else {
+          localStorage.setItem('chte-unseen', '1');
+          document.getElementById('nav-bridge').classList.add('has-new');
+          if (current === 'journey') renderJourney();
+        }
+        if (!quiet) {
+          const e = entryFor(fresh.day)[fresh.part];
+          playDing(!!(e.mum && e.daughter));
+          toast(name(fresh.role) + ' placed words on the bridge');
+        }
+      }
+    } catch (err) { /* offline - keep showing what this phone already has */ }
+    pulling = false;
+  }
+
+  /* ================= invite + notification cards ================= */
+  function nudgeCards() {
+    if (!token) return '';
+    let html = '';
+    const other = esc(name(otherRole(role)));
+    if (!localStorage.getItem('chte-invite-hidden')) {
+      html += '<div class="card nudge"><span class="card-tag">One more step</span>' +
+              '<h2>Invite <em>' + other + '</em> to the bridge</h2>' +
+              '<p class="hint">Send ' + other + ' the link. Opened on their own phone, it connects the two of you, and your words travel between you.</p>' +
+              '<button class="save-btn" onclick="sendInvite()">Send the invite</button><br>' +
+              '<button class="edit-link" onclick="localStorage.setItem(\'chte-invite-hidden\',\'1\');renderToday()">Done - hide this</button></div>';
+    }
+    const st = pushState();
+    if (st && !localStorage.getItem('chte-push-hidden')) {
+      html += '<div class="card nudge"><span class="card-tag">Stay close</span>' +
+              '<h2>Know the moment <em>' + other + '</em> writes</h2>';
+      if (st === 'ios-install') {
+        html += '<p class="hint">On iPhone: tap the Share button below, choose <em>Add to Home Screen</em>, then open the app from your home screen and turn notifications on there.</p>';
+      } else {
+        html += '<p class="hint">A gentle notification on this phone when new words are waiting. It never shows the words themselves.</p>' +
+                '<button class="save-btn" onclick="enablePush()">Turn on notifications</button><br>';
+      }
+      html += '<button class="edit-link" onclick="localStorage.setItem(\'chte-push-hidden\',\'1\');renderToday()">Not now</button></div>';
+    }
+    return html;
+  }
+
+  async function sendInvite() {
+    if (!token) return;
+    const other = otherRole(role);
+    const url = linkFor(other);
+    const text = name(role) + ' has invited you to Come Home to Each Other - one small question in the morning, one small thank you at night, just for the two of you. Open this on your phone:';
+    try {
+      if (navigator.share) { await navigator.share({ title: 'Come Home to Each Other', text, url }); return; }
+    } catch (err) { if (err && err.name === 'AbortError') return; }
+    try { await navigator.clipboard.writeText(text + ' ' + url); toast('Invite copied - paste it in a message'); }
+    catch (err) { toast('Copy the link from the address bar'); }
+  }
+
+  /* ================= notifications ================= */
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const isStandalone = window.navigator.standalone === true || matchMedia('(display-mode: standalone)').matches;
+  let swReg = null;
+
+  function pushState() {
+    if (isIOS && !isStandalone) return 'ios-install';
+    if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) return null;
+    return Notification.permission === 'default' ? 'ask' : null;
+  }
+  function b64ToBytes(b64) {
+    const pad = '='.repeat((4 - b64.length % 4) % 4);
+    const raw = atob((b64 + pad).replace(/-/g, '+').replace(/_/g, '/'));
+    return Uint8Array.from(raw, c => c.charCodeAt(0));
+  }
+  async function enablePush() {
+    try {
+      const perm = await Notification.requestPermission();   // must be the first thing after the tap (iPhone rule)
+      if (perm !== 'granted') { localStorage.setItem('chte-push-hidden', '1'); renderToday(); return; }
+      await syncSub();
+      renderToday();
+      toast('Notifications are on');
+    } catch (err) { toast('Couldn’t turn notifications on'); }
+  }
+  let subJob = null;   // one registration at a time, or the phone signs up twice and buzzes twice
+  function syncSub() {
+    if (subJob) return subJob;
+    subJob = (async () => {
+      if (!token || !role || !('serviceWorker' in navigator) || !('PushManager' in window)) return;
+      if (!('Notification' in window) || Notification.permission !== 'granted') return;
+      const r = role;
+      try {
+        const reg = swReg || await navigator.serviceWorker.ready;
+        let sub = await reg.pushManager.getSubscription();
+        if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToBytes(SYNC.vapid) });
+        const j = sub.toJSON();
+        await rpc('chte_save_sub', { p_token: token, p_role: r, p_endpoint: j.endpoint, p_p256dh: j.keys.p256dh, p_auth: j.keys.auth });
+      } catch (err) { /* notifications are a bonus, never block the app */ }
+      if (r !== role) setTimeout(syncSub, 0);   // the phone changed hands while we were registering
+    })().finally(() => { subJob = null; });
+    return subJob;
+  }
+  async function unsubscribePush() {
+    try {
+      const reg = swReg || await navigator.serviceWorker.getRegistration();
+      const sub = reg && await reg.pushManager.getSubscription();
+      if (sub) await sub.unsubscribe();
+    } catch (err) {}
+  }
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').then(r => { swReg = r; }).catch(() => {});
+    navigator.serviceWorker.addEventListener('message', e => { if (e.data === 'chte-pull') pull(); });
+  }
+
   /* ================= boot ================= */
-  function boot() {
+  function showNames() {
+    document.getElementById('headline').innerHTML = esc(data.mumName) + ' <em>&amp;</em> ' + esc(data.daughterName);
+    document.getElementById('roleMum').textContent = data.mumName || 'Mum';
+    document.getElementById('roleDaughter').textContent = data.daughterName || 'Daughter';
+  }
+  function boot(afterPull) {
+    readJoinLink();
     if (!data.mumName || !data.daughterName) {
+      if (token && !afterPull) {             // opened an invite link - fetch the bridge first
+        document.getElementById('headline').innerHTML = 'Finding <em>your bridge</em>...';
+        pull(true).then(() => { if (!data.mumName) { go('setup'); if (token) toast('Couldn’t reach the bridge - check your connection'); } });
+        return;
+      }
       go('setup');
       return;
     }
-    document.getElementById('roleSwitch').style.display = 'flex';
+    // once two phones are paired, each phone belongs to one person - no switcher
+    document.getElementById('roleSwitch').style.display = token ? 'none' : 'flex';
     document.getElementById('mainNav').style.display = 'flex';
-    document.getElementById('headline').innerHTML = esc(data.mumName) + ' <em>&amp;</em> ' + esc(data.daughterName);
+    showNames();
     if (!role) role = 'mum';
     setRole(role);
+    if (localStorage.getItem('chte-unseen')) document.getElementById('nav-bridge').classList.add('has-new');
     go('today');
+    if (token) { flush(); if (!afterPull) pull(true); }   // setRole above already kept the address + notification registration
+    else ensurePair().then(() => { if (token) document.getElementById('roleSwitch').style.display = 'none'; });
   }
   boot();
+
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) { flush(); pull(); } });
+  window.addEventListener('online', () => { flush(); pull(); });
+  setInterval(() => { if (!document.hidden) { flush(); pull(); } }, 20000);
 </script>
 </body>
 </html>
